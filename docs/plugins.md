@@ -110,12 +110,7 @@ src/
 
 Publish these modules together on HTTPS hosting with CORS, or use a bundler to emit an ES module entry such as `dist/qolaf-client.js`. Keep the source split by feature; a single distribution file need not become a single source file. The bundle must retain the default export above. GitHub Pages module URLs work; GitHub `/blob/` pages are HTML and will not.
 
-The working example is split into two files:
-
-- Entry: `https://raonygamer.github.io/QoLAF/examples/session-badge.js`
-- Dependency: `session-badge-ui.js` in the same directory
-
-It logs raw class availability and displays a small badge after a game session starts. It is not installed automatically.
+Authoring examples live in the repository’s `examples/` directory. They are not shipped on the game website.
 
 ## Recovery and compatibility
 

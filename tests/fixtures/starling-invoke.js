@@ -1,0 +1,2 @@
+// Extracted from official Astroflux Haxe bundle, SHA256 9fcede93b5eb2ae0afbb945b8ae3493c32cd9a892ed8a0e90ffb5b94eaf660a0.
+export default function(e){var t=null!=this.__eventListeners?this.__eventListeners.h[e.type]:null,i=null==t?0:t.get_length();if(0!=i){e.setCurrentTarget(this),this.__eventStack.set(this.__eventStack.get_length(),e.type);for(var s=0,n=i;s<n;){var a=s++,r=t.get(a);if(null!=r){var o=r.length;if(0==o?r():1==o?r(e):r(e,e.data),e.stopsImmediatePropagation)return this.__eventStack.pop(),!0}}return this.__eventStack.pop(),e.stopsPropagation}return!1};

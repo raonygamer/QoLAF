@@ -136,3 +136,19 @@ test('plugin settings are isolated by stable plugin ID', () => {
   assert.deepEqual(a.storage.get('value'), { enabled: true });
   assert.equal(b.storage.get('value', 'missing'), 'missing');
 });
+
+test('hooked frame callbacks retain arity through real Starling dispatch', async () => {
+  const {default: invoke} = await import('./fixtures/starling-invoke.js');
+  const vector = values => ({get_length: () => values.length, get: i => values[i], set: (i,v) => { values[i]=v; }, pop: () => values.pop()});
+  const hooks = new Hooks();
+  const event = {type:'enterFrame',data:{marker:1},setCurrentTarget(){},get_passedTime:()=>1/60};
+  for (const method of [function () {return 0;}, function (e) { assert.equal(e,event); this.frames++; }, function (e,data) {assert.equal(e,event);assert.equal(data,event.data);}]) {
+    const target = {frames:0,update:method};
+    const off=hooks.add(target,'update','after',()=>{});
+    assert.equal(target.update.length,method.length);
+    const dispatcher = {__eventListeners:{h:{enterFrame:vector([target.update.bind(target)])}},__eventStack:vector([])};
+    invoke.call(dispatcher,event);
+    if (method.length===1) assert.equal(target.frames,1);
+    off(); assert.equal(target.update,method);
+  }
+});

@@ -70,6 +70,9 @@ export class Hooks {
         notify('after', [result, ...args]);
         return result;
       };
+      // Starling dispatches zero, one or two arguments based on listener.length.
+      // Haxe $bind preserves this length; a rest-argument wrapper must too.
+      Object.defineProperty(entry.wrapper, 'length', { value: entry.original.length });
       target[key] = entry.wrapper;
       methods.set(key, entry);
     } else if (target[key] !== entry.wrapper) {

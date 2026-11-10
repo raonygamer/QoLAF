@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>AstrofluxClient Port</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header>
+    <div><span class="eyebrow">COMMUNITY CLIENT · BROWSER PREVIEW</span><h1>AstrofluxClient <span>Port</span></h1></div>
+    <a href="https://astroflux.net/game" target="_blank" rel="noopener noreferrer">Official game ↗</a>
+  </header>
+  <main>
+    <section class="launch-panel">
+      <div><h2>The live game, with a mod layer.</h2><p>Loads the current official client and assets. Your original account stays with Astroflux and PlayerIO.</p></div>
+      <div class="actions"><button id="play">Play with mods</button><button id="original" class="secondary">Test without mods</button></div>
+    </section>
+    <section class="viewport" aria-label="Game">
+      <div id="placeholder"><span class="orbit">✦</span><h2>Ready when you are.</h2><p>Choose a mode to test the browser port.</p></div>
+      <iframe id="game" title="Astroflux game" allow="fullscreen; autoplay" allowfullscreen hidden></iframe>
+    </section>
+    <section class="status-panel">
+      <div class="status-heading"><p id="status" role="status">Not started</p><button id="copy" class="secondary small">Copy diagnostics</button></div>
+      <pre id="log" aria-label="Loading diagnostics"></pre>
+      <p class="hint">This is an experimental launcher. If loading fails, diagnostics show which step failed. Opening the official game does not apply mods.</p>
+    </section>
+  </main>
+  <footer>Unofficial community project. Astroflux belongs to its original creators.</footer>
+  <script type="module" src="./launcher.js"></script>
+</body>
+</html>

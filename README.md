@@ -1,4 +1,4 @@
-# AstrofluxClient Port
+# QoLAF
 
 Experimental GitHub Pages launcher for the live Astroflux HTML5 client. Each deployment fetches the official client and its public assets from `https://astroflux.net/`, then serves a matching snapshot on Pages. The browser applies two guarded injection points and starts the AFPUBLIC modifications extracted from the supplied Electron archive.
 
@@ -21,9 +21,9 @@ Diagnostics distinguish fetch, compatibility, SDK, and canvas startup. A canvas 
 
 ## GitHub Pages
 
-Create the public repository `raonygamer/AstrofluxClient-Port`, push `main`, and select **GitHub Actions** under Settings → Pages. The included workflow tests and deploys only `dist/`.
+Create the public repository `raonygamer/QoLAF`, push `main`, and select **GitHub Actions** under Settings → Pages. The included workflow tests and deploys only `dist/`.
 
-Expected address after successful deployment: https://raonygamer.github.io/AstrofluxClient-Port/
+Expected address after successful deployment: https://raonygamer.github.io/QoLAF/
 
 ## Loading and updates
 

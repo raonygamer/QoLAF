@@ -37,7 +37,7 @@ def fetch(path, version=None):
         url += '?v=' + version
     for attempt in range(3):
         try:
-            request = urllib.request.Request(url, headers={'User-Agent': 'AstrofluxClient-Port/0.1 (public asset deployment)'})
+            request = urllib.request.Request(url, headers={'User-Agent': 'QoLAF/0.1 (public asset deployment)'})
             with urllib.request.urlopen(request, timeout=60) as response:
                 if not response.url.startswith(ORIGIN):
                     raise ValueError('Unexpected upstream redirect')

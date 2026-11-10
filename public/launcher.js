@@ -6,6 +6,6 @@ window.addEventListener('message', event => {
   if (event.source !== frame.contentWindow || event.origin !== location.origin) return;
   const data = event.data;
   if (data?.type !== 'astroflux-port' || data.session !== session || typeof data.text !== 'string') return;
-  console.info('[AstrofluxClient-Port]', data.text.slice(0, 2000));
+  console.info('[QoLAF]', data.text.slice(0, 2000));
 });
 frame.src = `./game.html?mode=${mode}&session=${session}`;

@@ -17,7 +17,7 @@ function fail(text) {
   report(text);
   const panel = document.querySelector('#failure');
   panel.hidden = false;
-  panel.textContent = `${text}\n\nSee the loading diagnostics below the game. Try the official game link to compare.`;
+  panel.textContent = `${text}\n\nSee the browser console for diagnostics. Reload to retry, or open https://astroflux.net/game to compare.`;
 }
 async function fetchText(url, label) {
   const response = await fetch(url, { mode: 'cors', credentials: 'omit', cache: 'no-cache', signal: AbortSignal.timeout(30000) });

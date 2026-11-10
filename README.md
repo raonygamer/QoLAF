@@ -15,9 +15,9 @@ npm run snapshot
 npm run dev
 ```
 
-Open http://localhost:8080 and choose **Play with mods**. **Test without mods** loads the same deployed official bundle without injection, to distinguish mod failures from startup failures. It still runs under the launcher's origin, so it is not equivalent to opening the official site.
+Open http://localhost:8080. The game starts automatically and fills the browser window. Add `?mode=original` to test the same deployed official bundle without injection, to distinguish mod failures from startup failures. It still runs under the launcher's origin, so it is not equivalent to opening the official site.
 
-Diagnostics distinguish fetch, compatibility, SDK, and canvas startup. A canvas does not establish successful asset loading or login. Copy diagnostics to report failures; the launcher does not collect account values or arbitrary SDK error text.
+Diagnostics distinguish fetch, compatibility, SDK, and canvas startup. A canvas does not establish successful asset loading or login. Diagnostics appear in the browser console and failures appear inside the game window; the launcher does not collect account values or arbitrary SDK error text.
 
 ## GitHub Pages
 
@@ -35,7 +35,7 @@ The upstream site sends `Cross-Origin-Resource-Policy: same-origin` and no CORS 
 
 `public/patch.js` requires exactly one match for each injection anchor. If either is missing or ambiguous it returns pristine source. Individual mod behavior must still be checked against new upstream builds.
 
-Upstream files refresh on each deployment, not each visit. Run **Actions → Test and deploy Pages → Run workflow** to fetch a newer upstream build without changing this repository. There is no scheduled refresh. A continuously live version would need a separate server-side asset proxy or the Electron interception path.
+Upstream files refresh on each deployment, not each visit. Run **Actions → Test and deploy Pages → Run workflow** to fetch a newer upstream build without changing this repository. GitHub Actions checks the upstream client, SDK, loader, and five manifests every 30 minutes (at minutes 7 and 37 UTC), and deploys only when a checked hash changes. GitHub may delay scheduled runs. Changed assets without a changed bundle/manifest are not detected by this lightweight check; a manual deployment refreshes all assets. A continuously live version would need a separate server-side asset proxy or the Electron interception path.
 
 The snapshot makes assets loadable, but successful login and gameplay from the Pages origin still require a browser test. Loading a canvas alone is not a successful gameplay test.
 

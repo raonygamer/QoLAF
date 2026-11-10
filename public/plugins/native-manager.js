@@ -5,7 +5,28 @@ export function nativeManager(host, { config, save, reload, safe, error }) {
   const sprite=()=>new (C('starling.display.Sprite'))();
   const place=(child,x,y,parent)=>{child.set_x(x);child.set_y(y);parent?.addChild(child);return child;};
   const text=(value,w=540,h=26,size=13)=>{const t=new (C('starling.text.TextField'))(w,h,value,new (C('starling.text.TextFormat'))('DAIDRR',size,0xffffff,'left','center'));t.set_touchable(false);return t;};
-  const button=(label,callback)=>new (C('core.hud.components.LoginButton'))(label,()=>{try{callback();}catch(e){console.error('[QoLAF plugin UI]',e);status?.set_text(String(e.message||e));}});
+  const button = (label, callback) => {
+    const click = () => {
+      try { callback(); }
+      catch (failure) {
+        console.error('[QoLAF plugin UI]', failure);
+        status?.set_text(String(failure.message || failure));
+      }
+    };
+    if (!settingsState) return new (C('core.hud.components.LoginButton'))(label, click);
+    // Keep login controls on login; use the game's themed menu buttons in play.
+    // The external client registers the original Verdana atlas. Vanilla has font13.
+    const font = C('starling.text.TextField').getBitmapFont?.('verdana16_bitmap')
+      ? 'verdana16_bitmap' : 'font13';
+    const control = new (C('core.hud.components.Button'))(click, label, 'normal', 13, font);
+    control.autoEnableAfterClick = true;
+    control.set_width(120);
+    // Native Sprite.set_height scales glyphs. Resize the text and skins instead.
+    control.tf.set_height(32);
+    control.styleImage.set_height(32);
+    control.hoverImage.set_height(32);
+    return control;
+  };
   const dispose=node=>{if(!node)return;const parent=node.get_parent();if(parent)parent.removeChild(node,true);else node.dispose();};
   const close=()=>{if(!window)return;dispose(window);window=null;trust=false;if(blocked){blocked.game.blockHotkeys=blocked.value;blocked=null;}};
   const layout=()=>{
@@ -58,7 +79,7 @@ export function nativeManager(host, { config, save, reload, safe, error }) {
     (host.game?.overlay||owner).addChild(window);render();layout();
   }
   function unmount(){close();dispose(root);root=null;owner=null;settingsState=null;}
-  function mount(target,state=null){unmount();owner=target;settingsState=state;root=button('Plugins',open);root.set_name('qolaf.pluginsButton');owner.addChild(root);layout();}
+  function mount(target,state=null){unmount();owner=target;settingsState=state;root=button('Plugins',open);if(settingsState?.panel)root.set_width(130);root.set_name('qolaf.pluginsButton');owner.addChild(root);layout();}
   host.on('classesReady',()=>{
     const login=C('Login').prototype;
     host.scope.defer(host.hooks.add(login,'init','after',function(){mount(this);}));

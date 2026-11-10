@@ -5,7 +5,6 @@ const ASSET_ROOT = new URL('./upstream/', import.meta.url).href;
 const CLIENT = new URL('astroflux.js', ASSET_ROOT).href;
 const query = new URLSearchParams(location.search);
 const session = query.get('session');
-const modURL = new URL('./mods/afpublic.js', import.meta.url);
 let gameSeen = false;
 let failed = false;
 let watch;
@@ -82,8 +81,7 @@ async function start() {
     const clientHash = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
     if (clientHash !== snapshot.clientSha256) throw new Error('Client and deployment manifest differ. Reload after deployment completes.');
     report(`Upstream SHA-256: ${clientHash}`, false);
-    const mod = plugins.legacyEnabled ? await fetchText(modURL, 'Bundled compatibility mod') : '';
-    const result = patchClient(source, mod);
+    const result = patchClient(source);
     clientCode = result.code;
     report(result.ok ? 'Plugin bridge injection anchors matched.' : `Patch compatibility check failed: ${JSON.stringify(result.missing)}. Loading the original code.`, false);
     if (result.ok) {

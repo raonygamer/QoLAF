@@ -1,6 +1,6 @@
 # QoLAF plugin API
 
-Players open the small **Plugins** button in the game, paste an HTTPS JavaScript module URL, acknowledge that they trust the code, and click **Add plugin**. Enable, disable, removal, and the bundled AFPUBLIC switch take effect on **Reload game**. The next load imports enabled modules before the Haxe application starts. Settings live in the browser; nothing is sent to a plugin directory service.
+Players open the small **Plugins** button in the game, paste an HTTPS JavaScript module URL, acknowledge that they trust the code, and click **Add plugin**. Enable, disable, removal take effect on **Reload game**. The next load imports enabled modules before the Haxe application starts. Settings live in the browser; nothing is sent to a plugin directory service.
 
 External plugins run in the game frame with its full privileges. They can access account/session data and modify objects, prototypes, DOM, storage, and network behavior. The API is a convenience layer, not a security boundary. Only install trusted URLs. Trust also extends to future code served at that URL; use immutable versioned release paths when you want a pinned version. URL fragments and embedded credentials are rejected. Browsers require CORS permission and a JavaScript MIME type for cross-origin modules.
 
@@ -119,6 +119,6 @@ It logs raw class availability and displays a small badge after a game session s
 
 ## Recovery and compatibility
 
-Open `https://raonygamer.github.io/QoLAF/?safe=1` to skip external plugins and bundled AFPUBLIC for that visit, then disable/remove a broken plugin and reload the normal URL. `?mode=original` skips the plugin bridge entirely. Normal reloads use browser module caching; deploy versioned URLs or correct cache headers when releasing updates.
+Open `https://raonygamer.github.io/QoLAF/?safe=1` to skip external plugins for that visit, then disable/remove a broken plugin and reload the normal URL. `?mode=original` skips the plugin bridge entirely. Normal reloads use browser module caching; deploy versioned URLs or correct cache headers when releasing updates.
 
-The bridge requires exactly one match for each of three anchors (class registry, game creation, and Haxe entry point). An incompatible bundle is left unmodified. Deployments test these anchors against the newly downloaded upstream client. The bundled AFPUBLIC mod remains a separate compatibility option; its unmanaged modifications are not presented as cleanly unloadable plugin hooks.
+The bridge requires exactly one match for each of three anchors (class registry, game creation, and Haxe entry point). An incompatible bundle is left unmodified. Deployments test these anchors against the newly downloaded upstream client.

@@ -24,7 +24,7 @@ test('saved settings preserve disabled plugins and reject duplicates', () => {
   const s = storage();
   assert.deepEqual(readConfig(s).plugins, []);
   const plugin = { url: 'https://example.com/p.js', enabled: false };
-  s.setItem(CONFIG_KEY, JSON.stringify({ version: 1, legacyEnabled: false, plugins: [plugin] }));
+  s.setItem(CONFIG_KEY, JSON.stringify({ version: 1, plugins: [plugin] }));
   assert.deepEqual(readConfig(s).plugins, [plugin]);
   s.setItem(CONFIG_KEY, JSON.stringify({ version: 1, plugins: [plugin, plugin] }));
   assert.throws(() => readConfig(s), /Duplicate/);

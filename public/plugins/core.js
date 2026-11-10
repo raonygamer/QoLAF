@@ -11,7 +11,7 @@ export function pluginURL(value, origin = globalThis.location?.origin) {
 
 export function readConfig(storage) {
   const raw = storage.getItem(CONFIG_KEY);
-  if (!raw) return { version: 1, legacyEnabled: true, plugins: [] };
+  if (!raw) return { version: 1, plugins: [] };
   const config = JSON.parse(raw);
   if (config.version !== 1 || !Array.isArray(config.plugins) || config.plugins.length > 12) throw new Error('Invalid saved plugin configuration.');
   const seen = new Set();
@@ -21,7 +21,7 @@ export function readConfig(storage) {
     seen.add(url);
     return { url, enabled: p.enabled === true };
   });
-  return { version: 1, legacyEnabled: config.legacyEnabled !== false, plugins };
+  return { version: 1, plugins };
 }
 
 export class Scope {

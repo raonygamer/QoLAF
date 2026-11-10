@@ -6,7 +6,7 @@ export function createPluginManager({ storage, safe = false } = {}) {
   try { storage ??= localStorage; config = readConfig(storage); }
   catch (error) {
     storageError = 'Saved plugins could not be read: ' + error.message;
-    config = { version: 1, legacyEnabled: false, plugins: [] };
+    config = { version: 1, plugins: [] };
   }
   storage ??= { getItem() { return null; }, setItem() { throw new Error('Browser storage is unavailable.'); }, removeItem() {} };
   const host = new PluginHost({ storage, onChange: () => render() });
@@ -79,9 +79,6 @@ export function createPluginManager({ storage, safe = false } = {}) {
   function render() {
     if (!list) return;
     list.replaceChildren();
-    row('AFPUBLIC compatibility mod', 'Existing bundled features. Separate from external plugins.', config.legacyEnabled,
-      safe ? 'Disabled by safe mode' : pending ? 'Reload to apply changes' : 'Bundled',
-      enabled => save({ ...config, legacyEnabled: enabled }));
     for (const plugin of config.plugins) {
       const running = host.records.find(r => r.url === plugin.url);
       row(running?.name || 'External plugin', plugin.url, plugin.enabled,
@@ -89,7 +86,7 @@ export function createPluginManager({ storage, safe = false } = {}) {
         enabled => save({ ...config, plugins: config.plugins.map(p => p.url === plugin.url ? { ...p, enabled } : p) }),
         () => save({ ...config, plugins: config.plugins.filter(p => p.url !== plugin.url) }));
     }
-    message.textContent = storageError || (pending ? 'Saved. Reload to apply changes; this disconnects the current game session.' : safe ? 'Safe mode: external plugins and AFPUBLIC are disabled for this visit.' : '');
+    message.textContent = storageError || (pending ? 'Saved. Reload to apply changes; this disconnects the current game session.' : safe ? 'Safe mode: external plugins are disabled for this visit.' : '');
   }
   shadow.querySelector('form').onsubmit = e => {
     e.preventDefault();
@@ -100,7 +97,7 @@ export function createPluginManager({ storage, safe = false } = {}) {
       if (save({ ...config, plugins: [...config.plugins, { url, enabled: true }] })) e.target.reset();
     } catch (error) { message.textContent = error.message; }
   };
-  shadow.querySelector('#disable').onclick = () => save({ ...config, legacyEnabled: false, plugins: config.plugins.map(p => ({ ...p, enabled: false })) });
+  shadow.querySelector('#disable').onclick = () => save({ ...config, plugins: config.plugins.map(p => ({ ...p, enabled: false })) });
   shadow.querySelector('#reload').onclick = () => location.reload();
   // Read-only accessors expose actual mutable game objects to plugin authors.
   window.QoLAF = Object.freeze({ apiVersion: 1, get classes() { return host.classes; }, get game() { return host.game; }, cls: name => host.classes?.[name], openPlugins: open });
@@ -112,7 +109,6 @@ export function createPluginManager({ storage, safe = false } = {}) {
   render();
   return {
     host,
-    get legacyEnabled() { return !safe && config.legacyEnabled; },
     async load() {
       if (safe) return;
       for (const plugin of config.plugins.filter(p => p.enabled)) await host.load(plugin.url);

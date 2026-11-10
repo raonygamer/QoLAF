@@ -1,6 +1,6 @@
 # QoLAF
 
-Experimental GitHub Pages launcher for the live Astroflux HTML5 client. Each deployment fetches the official client and its public assets from `https://astroflux.net/`, then serves a matching snapshot on Pages. The browser applies guarded injection points and starts the AFPUBLIC modifications extracted from the supplied Electron archive.
+Experimental GitHub Pages launcher for the live Astroflux HTML5 client. Each deployment fetches the official client and its public assets from `https://astroflux.net/`, then serves a matching snapshot on Pages. The browser applies guarded injection points and loads only plugins explicitly installed by the player. With no plugins installed, gameplay is vanilla.
 
 The official bundle and public assets are downloaded only into the deployment artifact, not committed to Git. Authentication and multiplayer connections still go directly to PlayerIO. No ASAR or credentials are committed. This is a browser loading experiment, not yet a complete port of AstrofluxClient.
 
@@ -41,9 +41,9 @@ The snapshot makes assets loadable, but successful login and gameplay from the P
 
 ## Source and next steps
 
-`public/mods/afpublic.js` is preserved from `app.asar/src/afpublic/mod.js` supplied for this project. It includes the existing AFPUBLIC features; they have not been represented as original work or re-licensed. The patch adapter follows that archive's two-anchor approach. Astroflux belongs to its original creators.
+The bridge follows the class-registry approach observed in the supplied Electron archive. AFPUBLIC gameplay modifications are not included. Astroflux belongs to its original creators.
 
-The shared patcher and mod file can later be used by an Electron ASAR that keeps loading the official game page. No new Steam ASAR is built in this initial browser experiment.
+The shared patcher and plugin API can later be used by an Electron ASAR that keeps loading the official game page. No new Steam ASAR is built in this initial browser experiment.
 
 For a local upstream compatibility check:
 
@@ -53,6 +53,6 @@ ASTROFLUX_BUNDLE=/path/to/astroflux.js npm test
 
 ## Plugin loader
 
-The **Plugins** button opens the in-game manager. Install trusted HTTPS ES module URLs, enable or disable them, then reload to apply changes. The bundled AFPUBLIC mod can be switched off independently. Plugin source can be split into modules or bundled into one published JavaScript entry.
+The **Plugins** button opens the in-game manager. Install trusted HTTPS ES module URLs, enable or disable them, then reload to apply changes. Plugin source can be split into modules or bundled into one published JavaScript entry.
 
-See [Plugin API and authoring guide](docs/plugins.md) for raw Haxe access, managed prototype hooks, session cleanup, settings, and the multi-file example. Open `?safe=1` to recover without loading external plugins or AFPUBLIC; `?mode=original` skips the bridge entirely.
+See [Plugin API and authoring guide](docs/plugins.md) for raw Haxe access, managed prototype hooks, session cleanup, settings, and the multi-file example. Open `?safe=1` to recover without loading external plugins; `?mode=original` skips the bridge entirely.

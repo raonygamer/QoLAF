@@ -4,7 +4,7 @@ import vm from 'node:vm';
 import { readFileSync } from 'node:fs';
 import { patchClient } from '../public/patch.js';
 
-const fixture = 'var $hxClasses={};var core_scene_Game=function(){core_scene_Game.instance=this;};$hxClasses["core.scene.Game"]=core_scene_Game;new core_scene_Game();';
+const fixture = 'var $hxClasses={};var core_scene_Game=function(){core_scene_Game.instance=this;};$hxClasses["core.scene.Game"]=core_scene_Game;var ApplicationMain={main:function(){new core_scene_Game();}};ApplicationMain.main();';
 test('exposes registry and delivers game instance without replacing the game', () => {
   const result = patchClient(fixture, 'window.__AFPUBLIC={_onGame:function(g){window.seen=g}};');
   assert.equal(result.ok, true);
@@ -27,6 +27,15 @@ test('ambiguous anchor returns pristine source', () => {
 test('mod source is inserted literally, including replacement metacharacters', () => {
   const mod = 'window.marker="$& $` $\'";';
   assert.ok(patchClient(fixture, mod).code.startsWith(mod + '\n;\n'));
+});
+test('raw registry is delivered before game construction', () => {
+  const events = [];
+  const context = { window: { __QOLAF: {
+    classesReady(registry) { events.push('classes'); assert.ok(registry['core.scene.Game']); },
+    created(game) { events.push('game'); assert.ok(game); },
+  } } };
+  vm.runInNewContext(patchClient(fixture, '').code, context);
+  assert.deepEqual(events, ['classes', 'game']);
 });
 test('supplied official bundle accepts patches and remains syntactically valid', { skip: !process.env.ASTROFLUX_BUNDLE }, () => {
   const source = readFileSync(process.env.ASTROFLUX_BUNDLE, 'utf8');

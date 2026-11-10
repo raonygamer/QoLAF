@@ -1,4 +1,4 @@
-// The two injection points used by the supplied AFPUBLIC Electron mod.
+// Compatibility hooks plus early access before Haxe starts the application.
 // Apply atomically: a missing or ambiguous anchor returns the original source.
 export function patchClient(source, modSource) {
   const hooks = [
@@ -10,7 +10,12 @@ export function patchClient(source, modSource) {
     {
       name: 'game created',
       pattern: /core_scene_Game\.instance\s*=\s*this\s*([,;])/g,
-      replace: (_, separator) => 'core_scene_Game.instance=this,window.__AFPUBLIC&&window.__AFPUBLIC._onGame(this)' + separator,
+      replace: (_, separator) => 'core_scene_Game.instance=this,window.__QOLAF&&window.__QOLAF.created(this),window.__AFPUBLIC&&window.__AFPUBLIC._onGame(this)' + separator,
+    },
+    {
+      name: 'classes ready',
+      pattern: /ApplicationMain\.main\(\)/g,
+      replace: () => '(window.__QOLAF&&window.__QOLAF.classesReady($hxClasses),ApplicationMain.main())',
     },
   ];
   const missing = hooks.map(hook => ({ name: hook.name, matches: [...source.matchAll(hook.pattern)].length }))

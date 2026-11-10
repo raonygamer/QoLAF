@@ -47,6 +47,8 @@ jobs:
       - run: npm run build
       - name: Fetch matching public upstream files
         run: npm run snapshot
+      - name: Check plugin bridge against the downloaded client
+        run: ASTROFLUX_BUNDLE=dist/upstream/astroflux.js node --test tests/patch.test.js
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

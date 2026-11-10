@@ -1,6 +1,6 @@
 # QoLAF
 
-Experimental GitHub Pages launcher for the live Astroflux HTML5 client. Each deployment fetches the official client and its public assets from `https://astroflux.net/`, then serves a matching snapshot on Pages. The browser applies two guarded injection points and starts the AFPUBLIC modifications extracted from the supplied Electron archive.
+Experimental GitHub Pages launcher for the live Astroflux HTML5 client. Each deployment fetches the official client and its public assets from `https://astroflux.net/`, then serves a matching snapshot on Pages. The browser applies guarded injection points and starts the AFPUBLIC modifications extracted from the supplied Electron archive.
 
 The official bundle and public assets are downloaded only into the deployment artifact, not committed to Git. Authentication and multiplayer connections still go directly to PlayerIO. No ASAR or credentials are committed. This is a browser loading experiment, not yet a complete port of AstrofluxClient.
 
@@ -50,3 +50,9 @@ For a local upstream compatibility check:
 ```sh
 ASTROFLUX_BUNDLE=/path/to/astroflux.js npm test
 ```
+
+## Plugin loader
+
+The **Plugins** button opens the in-game manager. Install trusted HTTPS ES module URLs, enable or disable them, then reload to apply changes. The bundled AFPUBLIC mod can be switched off independently. Plugin source can be split into modules or bundled into one published JavaScript entry.
+
+See [Plugin API and authoring guide](docs/plugins.md) for raw Haxe access, managed prototype hooks, session cleanup, settings, and the multi-file example. Open `?safe=1` to recover without loading external plugins or AFPUBLIC; `?mode=original` skips the bridge entirely.

@@ -1,4 +1,5 @@
 import { patchClient } from './patch.js';
+import { createPluginManager } from './plugins/manager.js';
 
 const ASSET_ROOT = new URL('./upstream/', import.meta.url).href;
 const CLIENT = new URL('astroflux.js', ASSET_ROOT).href;
@@ -61,11 +62,12 @@ window.addEventListener('unhandledrejection', () => report('An asynchronous game
 
 async function start() {
   const patched = query.get('mode') !== 'original';
+  const plugins = patched ? createPluginManager({ safe: query.get('safe') === '1' }) : null;
   // Keep relative resources inside this deployment's matching upstream snapshot.
   const base = document.createElement('base');
   base.href = ASSET_ROOT;
   document.head.prepend(base);
-  report(`Mode: ${patched ? 'AFPUBLIC patches' : 'official code, without patches'}`, false);
+  report(`Mode: ${patched ? 'QoLAF plugin host' : 'official code, without patches'}`, false);
   const snapshot = JSON.parse(await fetchText(new URL('snapshot.json', ASSET_ROOT), 'Upstream snapshot'));
   report(`Official files fetched at deployment: ${snapshot.fetchedAt}; assets ${snapshot.assetVersion}`, false);
   let clientCode;
@@ -80,10 +82,14 @@ async function start() {
     const clientHash = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
     if (clientHash !== snapshot.clientSha256) throw new Error('Client and deployment manifest differ. Reload after deployment completes.');
     report(`Upstream SHA-256: ${clientHash}`, false);
-    const mod = await fetchText(modURL, 'Mod package');
+    const mod = plugins.legacyEnabled ? await fetchText(modURL, 'Bundled compatibility mod') : '';
     const result = patchClient(source, mod);
     clientCode = result.code;
-    report(result.ok ? 'Both injection anchors matched.' : `Patch compatibility check failed: ${JSON.stringify(result.missing)}. Loading the original code.`, false);
+    report(result.ok ? 'Plugin bridge injection anchors matched.' : `Patch compatibility check failed: ${JSON.stringify(result.missing)}. Loading the original code.`, false);
+    if (result.ok) {
+      report('Loading enabled plugins…');
+      await plugins.load();
+    }
   }
   report('Loading the official PlayerIO loader…');
   await script(new URL('playerio/playerio-loader.js', ASSET_ROOT).href, 'Official PlayerIO loader');
@@ -112,7 +118,7 @@ async function start() {
       canvasSeen = true;
       report('Game canvas created. Login and asset loading still need verification.');
     }
-    if (!gameSeen && window.AF?.game?.gameStartedTime) {
+    if (!gameSeen && window.QoLAF?.game?.gameStartedTime) {
       gameSeen = true;
       report('Game session started with the mod runtime.');
       clearInterval(watch);

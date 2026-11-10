@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Hooks, Scope, PluginHost, pluginURL, readConfig, CONFIG_KEY } from '../public/plugins/core.js';
+import { Hooks, Scope, PluginHost, pluginURL, readConfig, CONFIG_KEY, DEFAULT_CLIENT_URL } from '../public/plugins/core.js';
 
 function storage() {
   const data = new Map();
@@ -22,7 +22,7 @@ test('plugin URLs reject executable schemes, credentials and non-local HTTP', ()
 });
 test('saved settings preserve disabled plugins and reject duplicates', () => {
   const s = storage();
-  assert.deepEqual(readConfig(s).plugins, []);
+  assert.deepEqual(readConfig(s).plugins, [{url: DEFAULT_CLIENT_URL, enabled: true}]);
   const plugin = { url: 'https://example.com/p.js', enabled: false };
   s.setItem(CONFIG_KEY, JSON.stringify({ version: 1, plugins: [plugin] }));
   assert.deepEqual(readConfig(s).plugins, [plugin]);

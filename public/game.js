@@ -24,13 +24,20 @@ async function fetchText(url, label) {
   if (!response.ok) throw new Error(`${label}: HTTP ${response.status}`);
   return response.text();
 }
-function script(url) {
+function script(url, label = 'Game script') {
   return new Promise((resolve, reject) => {
     const element = document.createElement('script');
-    const timer = setTimeout(() => { element.remove(); reject(new Error('Script load timed out')); }, 30000);
+    const timer = setTimeout(() => { element.remove(); reject(new Error(`${label}: load timed out`)); }, 30000);
+    // Classic scripts default to no-cors, which upstream CORP can block.
+    // Ask for CORS permission explicitly; do not send cross-origin credentials.
+    if (new URL(url, document.baseURI).protocol === 'https:') element.crossOrigin = 'anonymous';
     element.src = url;
     element.onload = () => { clearTimeout(timer); resolve(); };
-    element.onerror = () => { clearTimeout(timer); reject(new Error('Script could not be loaded')); };
+    element.onerror = () => {
+      clearTimeout(timer);
+      element.remove();
+      reject(new Error(`${label}: script load failed. Check the Network panel for CORS permission, HTTP status, or connectivity errors.`));
+    };
     document.head.append(element);
   });
 }
@@ -75,7 +82,7 @@ async function start() {
     report(result.ok ? 'Both injection anchors matched.' : `Patch compatibility check failed: ${JSON.stringify(result.missing)}. Loading the original code.`, false);
   }
   report('Loading the official PlayerIO loader…');
-  await script(new URL('playerio/playerio-loader.js', OFFICIAL).href);
+  await script(new URL('playerio/playerio-loader.js', OFFICIAL).href, 'Official PlayerIO loader');
   await waitForSDK();
   report('PlayerIO SDK ready. Loading game code…');
   if (clientCode !== undefined) {

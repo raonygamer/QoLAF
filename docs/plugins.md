@@ -117,3 +117,10 @@ Authoring examples live in the repository’s `examples/` directory. They are no
 Open `https://raonygamer.github.io/QoLAF/?safe=1` to skip external plugins for that visit, then disable/remove a broken plugin and reload the normal URL. `?mode=original` skips the plugin bridge entirely. Normal reloads use browser module caching; deploy versioned URLs or correct cache headers when releasing updates.
 
 The bridge requires exactly one match for each of three anchors (class registry, game creation, and Haxe entry point). An incompatible bundle is left unmodified. Deployments test these anchors against the newly downloaded upstream client.
+
+The manager uses LoginButton while on the login screen and the game's normal
+Button controls when opened from Settings. In the client's Settings sidebar,
+Plugins uses the same 130×32 dimensions and 13px Verdana bitmap text as adjacent
+navigation buttons. Without the external client/font atlas, the host falls back
+to the vanilla game's font13. The host does not bundle client styling code or
+replace the upstream update pipeline.

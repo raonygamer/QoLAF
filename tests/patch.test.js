@@ -39,3 +39,26 @@ test('supplied official bundle accepts patches and remains syntactically valid',
   assert.equal(result.ok, true, JSON.stringify(result.missing));
   new vm.Script(result.code); // Parse only; never run the game in Node.
 });
+
+test('renamed production symbols retain startup order and registry identity', () => {
+  const source = '(function(){var z={};var Ab=function(){Ab.instance=this;};z["core.scene.Game"]=Ab;var C=function(){};z.ApplicationMain=C;C.main=function(){new Ab();};C.main();var otherC={main:function(){}};otherC.main();})();';
+  const events = [];
+  const context = { window: { __QOLAF: {
+    classesReady(registry) {
+      events.push('classes');
+      assert.equal(registry, context.window.__AF_hx);
+      assert.equal(typeof registry['core.scene.Game'], 'function');
+    },
+    created(game) {
+      events.push('game');
+      assert.equal(game, context.window.__AF_hx['core.scene.Game'].instance);
+    },
+  } } };
+  const patched = patchClient(source);
+  assert.equal(patched.ok, true);
+  vm.runInNewContext(patched.code, context);
+  assert.deepEqual(events, ['classes', 'game']);
+  const ambiguous = source + 'var z={};z["core.scene.Game"]=Ab;';
+  assert.equal(patchClient(ambiguous).ok, false);
+  assert.equal(patchClient(ambiguous).code, ambiguous);
+});

@@ -1,7 +1,7 @@
 import { patchClient } from './patch.js';
 
-const OFFICIAL = 'https://astroflux.net/';
-const CLIENT = new URL('astroflux.js', OFFICIAL).href;
+const ASSET_ROOT = new URL('./upstream/', import.meta.url).href;
+const CLIENT = new URL('astroflux.js', ASSET_ROOT).href;
 const query = new URLSearchParams(location.search);
 const session = query.get('session');
 const modURL = new URL('./mods/afpublic.js', import.meta.url);
@@ -61,28 +61,34 @@ window.addEventListener('unhandledrejection', () => report('An asynchronous game
 
 async function start() {
   const patched = query.get('mode') !== 'original';
-  // Relative game resources resolve to the official host; launcher modules stay on Pages.
+  // Keep relative resources inside this deployment's matching upstream snapshot.
   const base = document.createElement('base');
-  base.href = OFFICIAL;
+  base.href = ASSET_ROOT;
   document.head.prepend(base);
   report(`Mode: ${patched ? 'AFPUBLIC patches' : 'official code, without patches'}`, false);
+  const snapshot = JSON.parse(await fetchText(new URL('snapshot.json', ASSET_ROOT), 'Upstream snapshot'));
+  report(`Official files fetched at deployment: ${snapshot.fetchedAt}; assets ${snapshot.assetVersion}`, false);
   let clientCode;
   if (patched) {
-    report('Fetching the current official client…');
+    report('Loading the official client from this deployment…');
     let source;
     try { source = await fetchText(CLIENT, 'Official client'); }
     catch (error) {
-      throw new Error(`Official client fetch failed (${error.name}). Cross-origin access, connectivity, or the server may be responsible. Try “Test without mods” to distinguish script loading from readable fetch access.`);
+      throw new Error(`Deployed client could not be loaded (${error.name}). Check the Pages deployment and Network panel.`);
     }
     const hash = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(source));
-    report(`Upstream SHA-256: ${Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('')}`, false);
+    const clientHash = Array.from(new Uint8Array(hash), b => b.toString(16).padStart(2, '0')).join('');
+    if (clientHash !== snapshot.clientSha256) throw new Error('Client and deployment manifest differ. Reload after deployment completes.');
+    report(`Upstream SHA-256: ${clientHash}`, false);
     const mod = await fetchText(modURL, 'Mod package');
     const result = patchClient(source, mod);
     clientCode = result.code;
     report(result.ok ? 'Both injection anchors matched.' : `Patch compatibility check failed: ${JSON.stringify(result.missing)}. Loading the original code.`, false);
   }
   report('Loading the official PlayerIO loader…');
-  await script(new URL('playerio/playerio-loader.js', OFFICIAL).href, 'Official PlayerIO loader');
+  await script(new URL('playerio/playerio-loader.js', ASSET_ROOT).href, 'Official PlayerIO loader');
+  if (typeof window.AstrofluxPlayerIO?.loadPinnedSDK !== 'function') throw new Error('Official SDK loader API missing');
+  await window.AstrofluxPlayerIO.loadPinnedSDK({ sdkUrl: new URL('playerio/PlayerIOClient.minified.js', ASSET_ROOT).href });
   await waitForSDK();
   report('PlayerIO SDK ready. Loading game code…');
   if (clientCode !== undefined) {
@@ -92,6 +98,10 @@ async function start() {
     await script(CLIENT);
   }
   if (typeof window.lime?.embed !== 'function') throw new Error('Official bundle did not expose lime.embed');
+  const fonts = document.createElement('style');
+  fonts.textContent = '@font-face{font-family:DAIDRR;src:url("ui/russo_one.ttf")}@font-face{font-family:"Russo One";src:url("ui/russo_one.ttf")}';
+  document.head.append(fonts);
+  await Promise.race([document.fonts.load('12px DAIDRR'), new Promise(resolve => setTimeout(resolve, 5000))]);
   window.lime.embed('astroflux', 'openfl-content', 0, 0, { background: '#000000' });
   if (failed) return;
   report('Game bootstrap started. Waiting for the canvas…');

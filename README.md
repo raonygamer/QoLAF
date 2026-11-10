@@ -1,8 +1,8 @@
 # AstrofluxClient Port
 
-Experimental GitHub Pages launcher for the live Astroflux HTML5 client. It fetches `https://astroflux.net/astroflux.js`, applies two guarded injection points, and starts the game with the AFPUBLIC modifications extracted from the supplied Electron archive.
+Experimental GitHub Pages launcher for the live Astroflux HTML5 client. Each deployment fetches the official client and its public assets from `https://astroflux.net/`, then serves a matching snapshot on Pages. The browser applies two guarded injection points and starts the AFPUBLIC modifications extracted from the supplied Electron archive.
 
-The official client, PlayerIO SDK, game definitions, textures, and accounts remain upstream. No official bundle, assets, ASAR, or credentials are committed. This is a browser loading experiment, not yet a complete port of AstrofluxClient.
+The official bundle and public assets are downloaded only into the deployment artifact, not committed to Git. Authentication and multiplayer connections still go directly to PlayerIO. No ASAR or credentials are committed. This is a browser loading experiment, not yet a complete port of AstrofluxClient.
 
 ## Try locally
 
@@ -10,10 +10,12 @@ Node 22 or newer and Python 3 are sufficient; no npm dependencies are required.
 
 ```sh
 npm test
+npm run build
+npm run snapshot
 npm run dev
 ```
 
-Open http://localhost:8080 and choose **Play with mods**. **Test without mods** loads the official JavaScript through a script tag to help distinguish readable-fetch/CORS failures from other failures. It still runs under the launcher's origin, so it is not equivalent to opening the official site.
+Open http://localhost:8080 and choose **Play with mods**. **Test without mods** loads the same deployed official bundle without injection, to distinguish mod failures from startup failures. It still runs under the launcher's origin, so it is not equivalent to opening the official site.
 
 Diagnostics distinguish fetch, compatibility, SDK, and canvas startup. A canvas does not establish successful asset loading or login. Copy diagnostics to report failures; the launcher does not collect account values or arbitrary SDK error text.
 
@@ -25,11 +27,17 @@ Expected address after successful deployment: https://raonygamer.github.io/Astro
 
 ## Loading and updates
 
-`public/game.js` requests the current official bundle with cache revalidation and records its SHA-256. `public/patch.js` requires exactly one match for each injection anchor; if either is missing or ambiguous, it returns the pristine source. Individual mod behavior must still be checked against new upstream builds.
+The upstream site sends `Cross-Origin-Resource-Policy: same-origin` and no CORS allowance for the game bundle, SDK loader, and data. A standalone GitHub Pages page cannot read or embed those resources directly.
 
-The frame sets its base URL to `https://astroflux.net/` so relative game assets continue resolving to the official host. This does not change the frame's security origin. Readable bundle fetches require upstream CORS permission; textures, data requests, SDK behavior, and authentication must also be tested from the deployed origin. No public proxy or authentication forwarding is used.
+`scripts/snapshot.py` downloads the official bundle, five asset manifests, their referenced files, and the PlayerIO loader and SDK into `dist/upstream/`. It checks that the bundle did not change during download and that the SDK matches the official loader's SHA-256 pin. File hashes, asset version, and fetch time are recorded in `snapshot.json`. A failed fetch or consistency check fails the deployment instead of publishing partial files.
 
-The initial bootstrap uses the observed official PlayerIO loader and the bundle's `lime.embed` entry point. The live game HTML was unavailable during implementation, so page-specific setup may require adjustment after the first browser test.
+`public/game.js` uses this same-origin snapshot and explicitly calls the official loader's `loadPinnedSDK()` API. The SDK's integrity verification remains intact. Relative assets and OpenFL manifests resolve under `upstream/`; no PlayerIO authentication or multiplayer endpoint is proxied.
+
+`public/patch.js` requires exactly one match for each injection anchor. If either is missing or ambiguous it returns pristine source. Individual mod behavior must still be checked against new upstream builds.
+
+Upstream files refresh on each deployment, not each visit. Run **Actions → Test and deploy Pages → Run workflow** to fetch a newer upstream build without changing this repository. There is no scheduled refresh. A continuously live version would need a separate server-side asset proxy or the Electron interception path.
+
+The snapshot makes assets loadable, but successful login and gameplay from the Pages origin still require a browser test. Loading a canvas alone is not a successful gameplay test.
 
 ## Source and next steps
 

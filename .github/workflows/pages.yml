@@ -23,6 +23,8 @@ jobs:
           node-version: '22'
       - run: npm test
       - run: npm run build
+      - name: Fetch matching public upstream files
+        run: npm run snapshot
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v4
         with:

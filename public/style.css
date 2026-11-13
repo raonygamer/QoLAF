@@ -1,1 +1,13 @@
 html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#000;color-scheme:dark}#game{display:block;border:0;width:100%;height:100%;background:#000}
+
+#loading{position:fixed;inset:0;z-index:1;display:grid;place-items:center;background:radial-gradient(ellipse at center,#102332 0,#050b12 65%,#000 100%);color:#dce8f0;font:14px system-ui,sans-serif;pointer-events:none}
+#loading[hidden]{display:none}.loading-content{text-align:center;width:min(320px,80vw)}.loading-title{font-size:42px;letter-spacing:6px;color:#bde5ff}.loading-subtitle{font-size:12px;letter-spacing:7px;color:#7896aa;margin:8px 0 28px}.loading-track{height:2px;overflow:hidden;background:#233b4b}.loading-track:after{content:"";display:block;width:40%;height:100%;background:#89d3ff;animation:loading-slide 1.5s ease-in-out infinite}#loading-text{min-height:2.5em;line-height:1.5;color:#a8bfce}
+@keyframes loading-slide{from{transform:translateX(-100%)}to{transform:translateX(350%)}}@media(prefers-reduced-motion:reduce){.loading-track:after{animation:none;width:100%}}
+
+@font-face{font-family:Russo;src:url('./upstream/ui/russo_one.ttf') format('truetype');font-display:swap}
+#loading{background:#000 url('./preview.jpg') center/cover no-repeat;font-family:Russo,Arial,sans-serif}
+#loading:before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.1),rgba(0,0,0,.15) 45%,rgba(0,0,0,.85))}
+.loading-content{position:relative;margin-top:30vh;padding:25px 32px 16px;border:1px solid #576971;background:linear-gradient(#172025ed,#030708ed);box-shadow:inset 0 0 0 2px #080e12,0 0 16px #000;border-radius:2px}
+.loading-title{font-size:32px;letter-spacing:2px;color:#efefef;text-shadow:2px 2px #000}.loading-subtitle{color:#e6ae38;letter-spacing:4px;margin-bottom:22px}.loading-track{height:5px;background:#080b0d;border:1px solid #53616a;box-shadow:0 0 0 1px #000}.loading-track:after{background:linear-gradient(#f6d76e,#a66d13)}#loading-text{color:#d1d1d1;font-size:12px;text-shadow:1px 1px #000}
+
+#loading{opacity:1;transition:opacity .45s ease-out}#loading.finished{opacity:0}@media(prefers-reduced-motion:reduce){#loading{transition:none}}

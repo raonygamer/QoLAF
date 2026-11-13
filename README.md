@@ -56,3 +56,30 @@ ASTROFLUX_BUNDLE=/path/to/astroflux.js npm test
 The **Plugins** button opens the in-game manager. Install trusted HTTPS ES module URLs, enable or disable them, then reload to apply changes. Plugin source can be split into modules or bundled into one published JavaScript entry.
 
 See [Plugin API and authoring guide](docs/plugins.md) for raw Haxe access, managed prototype hooks, session cleanup, settings, and the multi-file example. Open `?safe=1` to recover without loading external plugins; `?mode=original` skips the bridge entirely.
+
+
+### Private client delivery on raony.dev
+
+`https://raony.dev/astroflux?private=true` requests a key before game startup.
+The key is sent in an HTTPS POST body, never a URL or localStorage. The server
+issues a two-hour signed HttpOnly/Secure/SameSite=Strict cookie scoped to
+`/astroflux/private/`. Only that cookie authorizes the private module endpoint.
+Missing, rejected or unavailable authorization falls back to the Public client.
+The upstream proxy strips cookies and authorization headers.
+
+The protected bundle is `/opt/qolaf-private/client.js`, outside all static web
+roots. `server/PrivateClient.py` listens only on loopback port 8094, behind the
+Caddy private route. `server/qolaf-private.service` loads the key digest and
+session-signing secret through systemd credentials. Actual keys are never in
+this repository. Updates must copy the verified Private build to the protected
+location, never to `public/`, `dist/`, or the normal public client directory.
+An authorized recipient can still save and redistribute browser-delivered code.
+
+The desktop patch's `private.js` (canonical helper: `shell/Private.cjs`) reads
+no renderer data: main.js takes the `PRIVATE` environment value, clears it from
+the environment, exchanges it with the server, and installs the HttpOnly cookie
+before opening the game. An invalid key loads Public without a prompt. Both
+Steam and itch use this path; official-site fallback never receives the key.
+Use `PRIVATE="your-key" %command%` in Steam launch options, or prefix the itch
+executable command with that environment assignment. Reload the website after
+host updates; the patched desktop files must be copied into the unpacked shell.

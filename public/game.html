@@ -2,6 +2,12 @@
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Astroflux</title>
+<link rel="stylesheet" href="./style.css">
 <style>html,body,#openfl-content{margin:0;width:100%;height:100%;overflow:hidden;background:#000}canvas{display:block}#failure{position:fixed;inset:0;display:grid;place-content:center;padding:24px;color:#dce8ff;background:#0b1220;font:16px system-ui;white-space:pre-wrap}#failure[hidden]{display:none}</style>
-</head><body><div id="openfl-content"></div><div id="failure" hidden></div>
+</head><body><div id="loading" role="status" aria-live="polite">
+  <div class="loading-content"><div class="loading-title">QoLAF</div>
+  <div class="loading-subtitle">ASTROFLUX</div><div class="loading-track"></div>
+  <p id="loading-text">Starting Astroflux…</p></div>
+</div>
+<div id="openfl-content"></div><div id="failure" hidden></div>
 <script type="module" src="./game.js"></script></body></html>

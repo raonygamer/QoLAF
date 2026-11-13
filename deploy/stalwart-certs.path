@@ -1,0 +1,6 @@
+[Unit]
+Description=Watch mail certificate renewals
+[Path]
+PathChanged=/var/lib/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.raony.dev/mail.raony.dev.crt
+[Install]
+WantedBy=multi-user.target

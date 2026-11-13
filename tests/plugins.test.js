@@ -24,7 +24,7 @@ test('saved settings preserve disabled plugins and reject duplicates', () => {
   const s = storage();
   assert.deepEqual(readConfig(s).plugins, [{url: DEFAULT_CLIENT_URL, enabled: true}]);
   const plugin = { url: 'https://example.com/p.js', enabled: false };
-  s.setItem(CONFIG_KEY, JSON.stringify({ version: 1, plugins: [plugin] }));
+  s.setItem(CONFIG_KEY, JSON.stringify({ version: 1, builtins: 1, plugins: [plugin] }));
   assert.deepEqual(readConfig(s).plugins, [plugin]);
   s.setItem(CONFIG_KEY, JSON.stringify({ version: 1, plugins: [plugin, plugin] }));
   assert.throws(() => readConfig(s), /Duplicate/);
@@ -151,4 +151,227 @@ test('hooked frame callbacks retain arity through real Starling dispatch', async
     if (method.length===1) assert.equal(target.frames,1);
     off(); assert.equal(target.update,method);
   }
+});
+
+
+test('live unload removes plugin and session hooks while preserving the running host', async () => {
+  const target = { value() { return 1; } };
+  const host = new PluginHost({ storage: storage(), log, importer: async () => ({ default: {
+    id: 'live', apiVersion: 1, activate(api) {
+      api.around(target, 'value', next => next() + 1);
+      api.onGame((_game, session) => session.around(target, 'value', next => next() + 10));
+    },
+  } }) });
+  await host.load('https://example.com/live.js');
+  host.classesReady({ 'core.scene.Game': Game });
+  const game = new Game();
+  host.created(game); game.runGameLoop();
+  assert.equal(target.value(), 12);
+  host.unload('https://example.com/live.js');
+  assert.equal(target.value(), 1);
+  assert.equal(host.game, game);
+  assert.equal(host.readyGame, game);
+  assert.equal(host.scope.closed, false);
+  assert.equal(host.records[0].state, 'stopped');
+  let frames = 0;
+  host.on('frame', () => frames++); game.update();
+  assert.equal(frames, 1);
+  host.dispose();
+});
+
+test('unsafe enable imports a fresh module and replays readiness only to that plugin', async () => {
+  const imports = [], events = [];
+  const host = new PluginHost({ storage: storage(), log, importer: async url => {
+    imports.push(url);
+    return { default: { id: 'late', apiVersion: 1, activate(api) {
+      api.on('classesReady', () => events.push('classes'));
+      api.onGame((_game, session) => { events.push('game'); session.defer(() => events.push('cleanup')); });
+    } } };
+  } });
+  let existingReady = 0;
+  host.on('classesReady', () => existingReady++);
+  host.classesReady({ 'core.scene.Game': Game });
+  const game = new Game(); host.created(game); game.runGameLoop();
+  await host.load('https://example.com/late.js?v=1', { fresh: true });
+  await Promise.resolve();
+  assert.deepEqual(events, ['classes', 'game']);
+  host.unload('https://example.com/late.js?v=1');
+  await host.load('https://example.com/late.js?v=1', { fresh: true });
+  await Promise.resolve();
+  assert.deepEqual(events, ['classes', 'game', 'cleanup', 'classes', 'game']);
+  assert.equal(existingReady, 1);
+  assert.notEqual(imports[0], imports[1]);
+  assert.equal(new URL(imports[0]).searchParams.get('v'), '1');
+  host.dispose();
+});
+
+test('disabling a pending import prevents later activation', async () => {
+  let deliver, activated = false;
+  const host = new PluginHost({ storage: storage(), log, importer: () => new Promise(resolve => deliver = resolve) });
+  const loading = host.load('https://example.com/pending.js');
+  host.unload('https://example.com/pending.js');
+  deliver({ default: { id: 'pending', apiVersion: 1, activate() { activated = true; } } });
+  assert.equal((await loading).state, 'stopped');
+  assert.equal(activated, false);
+  assert.equal(host.ids.size, 0);
+  host.dispose();
+});
+
+test('diagnostics retain hook context, coalesce repeats and preserve around failures', () => {
+  const host = new PluginHost({ storage: storage(), log: { error() {}, info() {}, warn() {} } });
+  const scope = new Scope();
+  const api = host.api('test', scope);
+  const target = { draw() { return 42; } };
+  api.before(target, 'draw', () => { throw new Error('missing texture'); });
+  assert.equal(target.draw(), 42);
+  assert.equal(target.draw(), 42);
+  let entries = api.diagnostics.snapshot();
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0].repeats, 2);
+  assert.match(entries[0].message, /before draw.*Error: missing texture/s);
+  entries[0].message = 'changed externally';
+  assert.notEqual(api.diagnostics.snapshot()[0].message, 'changed externally');
+  const failure = new Error('around failed');
+  api.around(target, 'draw', () => { throw failure; });
+  assert.throws(() => target.draw(), error => error === failure);
+  assert.match(api.diagnostics.snapshot().at(-1).message, /around draw/);
+  for (let i = 0; i < 130; i++) api.log('entry ' + i);
+  assert.equal(api.diagnostics.snapshot().length, 100);
+  scope.dispose();
+  assert.equal(target.draw(), 42);
+});
+
+test('retired bundled plugin is removed without changing saved QoLAF choices', () => {
+  for (const enabled of [true, false]) {
+    const s = storage();
+    const client = { url: DEFAULT_CLIENT_URL, enabled: false };
+    const retired = { url: 'https://raony.dev/astroflux/plugins/afpublic.js?old=1', enabled };
+    s.setItem(CONFIG_KEY, JSON.stringify({ version: 1, builtins: 1, plugins: [client, retired] }));
+    assert.deepEqual(readConfig(s).plugins, [client]);
+  }
+});
+
+test('hot enabling checks the current plugin declaration before activation', async () => {
+  let activated = 0;
+  const host = new PluginHost({ storage: storage(), log: {error() {}, info() {}}, importer: async () => ({default: {
+    id: 'metadata', name: 'Metadata', description: 'Example', version: '1', apiVersion: 1,
+    activate() { activated++; },
+  }}) });
+  const record = await host.load('https://example.com/metadata.js', {hot: true});
+  assert.equal(record.safeToHotReload, false);
+  assert.equal(record.description, 'Example');
+  assert.equal(record.state, 'error');
+  assert.equal(activated, 0);
+  host.dispose();
+});
+
+test('room refresh replaces session hooks without reimporting or deactivating plugins', async () => {
+  let imports = 0, activations = 0;
+  const chat = { send() { return 'native'; } };
+  const host = new PluginHost({storage: storage(), log, importer: async () => {
+    imports++;
+    return {default: {id: 'refresh', apiVersion: 1, activate(api) {
+      activations++;
+      api.around(chat, 'send', next => next() + ':global');
+      api.onGame((_game, session) => session.around(chat, 'send', next => next() + ':session'));
+    }}};
+  }});
+  await host.load('https://example.com/plugin.js');
+  host.classesReady({'core.scene.Game': Game});
+  for (let i = 0; i < 4; i++) {
+    const game = new Game(); host.created(game); game.runGameLoop();
+    assert.equal(chat.send(), 'native:session:global');
+    game.exit();
+    assert.equal(chat.send(), 'native:global');
+    assert.equal(host.records[0].state, 'active');
+  }
+  assert.equal(imports, 1); assert.equal(activations, 1);
+  host.dispose(); assert.equal(chat.send(), 'native');
+});
+
+test('hot unload closes room UI before restoring global class hooks', async () => {
+  const calls = [];
+  const screen = { resize() { calls.push('native resize'); } };
+  const host = new PluginHost({ storage: storage(), log, importer: async () => ({ default: {
+    id: 'ordered', apiVersion: 1, activate(api) {
+      api.on('classesReady', () => {
+        // A late classesReady replay installs global hooks after onGame registered.
+        api.defer(() => screen.resize());
+        api.around(screen, 'resize', () => calls.push('client resize'));
+      });
+      api.onGame((_game, session) => {
+        session.defer(() => screen.resize());
+      });
+    },
+  } }) });
+  host.classesReady({ 'core.scene.Game': Game });
+  const game = new Game(); host.created(game); game.runGameLoop();
+  await host.load('https://example.com/ordered.js', { fresh: true });
+  await Promise.resolve();
+  host.unload('https://example.com/ordered.js');
+  assert.deepEqual(calls, ['client resize', 'native resize']);
+  host.dispose();
+});
+
+test('room scope disposal releases ownership and survives a failing cleanup', () => {
+  const calls = [];
+  const parent = new Scope(error => calls.push(error.message));
+  const oldRoom = parent.child();
+  oldRoom.defer(() => calls.push('old room'));
+  oldRoom.dispose();
+  assert.equal(parent.children.size, 0);
+  const newRoom = parent.child();
+  newRoom.defer(() => calls.push('new room'));
+  newRoom.defer(() => { throw new Error('room cleanup error'); });
+  parent.defer(() => calls.push('plugin'));
+  parent.dispose(); parent.dispose(); newRoom.dispose();
+  assert.deepEqual(calls, ['old room', 'room cleanup error', 'new room', 'plugin']);
+  assert.equal(parent.children.size, 0);
+  assert.equal(parent.child().closed, true);
+});
+
+test('slow imports may finish after ten seconds without a false failure', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let deliver;
+  let activations = 0;
+  const host = new PluginHost({ storage: storage(), log, importer: () => new Promise(resolve => { deliver = resolve; }) });
+  const loading = host.load('https://example.com/slow.js');
+  t.mock.timers.tick(120000);
+  await Promise.resolve();
+  assert.equal(host.records[0].state, 'loading');
+  deliver({ default: { id: 'slow', apiVersion: 1, activate() { activations++; } } });
+  assert.equal((await loading).state, 'active');
+  assert.equal(activations, 1);
+  host.dispose();
+});
+
+test('import deadline remains bounded and a late module never activates', async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  let deliver;
+  let activations = 0;
+  const host = new PluginHost({ storage: storage(), log, importer: () => new Promise(resolve => { deliver = resolve; }) });
+  const loading = host.load('https://example.com/late.js');
+  t.mock.timers.tick(180000);
+  const record = await loading;
+  assert.equal(record.state, 'error');
+  assert.match(record.error, /import timed out/);
+  deliver({ default: { id: 'late', apiVersion: 1, activate() { activations++; } } });
+  await Promise.resolve();
+  assert.equal(activations, 0);
+  assert.equal(host.ids.size, 0);
+  host.dispose();
+});
+
+test('unloading settles a pending load immediately without waiting for the network', async () => {
+  let deliver;
+  let activations = 0;
+  const host = new PluginHost({ storage: storage(), log, importer: () => new Promise(resolve => { deliver = resolve; }) });
+  const loading = host.load('https://example.com/cancel.js');
+  host.unload('https://example.com/cancel.js');
+  assert.equal((await loading).state, 'stopped');
+  deliver({ default: { id: 'cancel', apiVersion: 1, activate() { activations++; } } });
+  await Promise.resolve();
+  assert.equal(activations, 0);
+  assert.equal(host.ids.size, 0);
+  host.dispose();
 });

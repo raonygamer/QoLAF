@@ -1,0 +1,7 @@
+[Unit]
+Description=Refresh Stalwart TLS certificates from Caddy
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/install -o stalwart -g stalwart -m 0640 /var/lib/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.raony.dev/mail.raony.dev.crt /etc/stalwart/tls/mail.raony.dev.crt
+ExecStart=/usr/bin/install -o stalwart -g stalwart -m 0600 /var/lib/caddy/certificates/acme-v02.api.letsencrypt.org-directory/mail.raony.dev/mail.raony.dev.key /etc/stalwart/tls/mail.raony.dev.key
+ExecStart=/usr/bin/systemctl restart stalwart.service

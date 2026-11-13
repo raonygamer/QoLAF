@@ -1,0 +1,25 @@
+[Unit]
+Description=QoLAF private client authorization
+After=network.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+ExecStart=/usr/bin/python /opt/qolaf-private/PrivateClient.py
+LoadCredential=key.sha256:/etc/qolaf-private/key.sha256
+LoadCredential=session.key:/etc/qolaf-private/session.key
+Restart=on-failure
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+RestrictAddressFamilies=AF_INET AF_UNIX
+IPAddressDeny=any
+IPAddressAllow=localhost
+MemoryMax=128M
+TasksMax=64
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

@@ -1,5 +1,6 @@
 """Fetch public game resources into the deployment artifact, never into Git."""
 import concurrent.futures
+import argparse
 import hashlib
 import json
 import re
@@ -52,6 +53,10 @@ def fetch(path, version=None):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--client-file', type=Path,
+                        help='Use these exact client bytes; upstream must still match before publication')
+    args = parser.parse_args()
     staging = DEST.with_name('upstream-staging')
     shutil.rmtree(staging, ignore_errors=True)
     staging.mkdir(parents=True)
@@ -63,7 +68,7 @@ def main():
         target.write_bytes(data)
         records.append({'path': path, 'bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()})
 
-    bundle = fetch('astroflux.js')
+    bundle = args.client_file.read_bytes() if args.client_file else fetch('astroflux.js')
     source = bundle.decode('utf-8')
     versions = set(re.findall(r'"v=(\d+)"', source))
     if len(versions) != 1:

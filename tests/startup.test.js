@@ -86,6 +86,7 @@ for (const failure of [false, true])
       clearInterval() {},
       requestPrivateAccess: async () => false,
       keepAudioActive() {},
+      keepGameKeyboard() {},
       liveUpstream: true,
       patchClient: () => ({ ok: true, code: "// game" }),
       createPluginManager: () => ({

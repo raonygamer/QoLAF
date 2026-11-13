@@ -1,11 +1,16 @@
 import { requestPrivateAccess } from "./private.js";
 import { keepAudioActive } from "./audio.js";
+import { keepGameKeyboard } from "./keyboard.js";
 import { liveUpstream } from "./deployment.js";
 import { patchClient } from "./patch.js";
 import { createPluginManager } from "./plugins/manager.js";
 
 const ASSET_ROOT = new URL("./upstream/", import.meta.url).href;
 const CLIENT = new URL("astroflux.js", ASSET_ROOT).href;
+keepGameKeyboard(
+  () => window.__AF_hx?.['starling.core.Starling']?.get_current()?.get_nativeStage(),
+  () => !!(window.QoLAF?.game ?? window.__AF_hx?.['core.scene.Game']?.instance)?.gameStartedTime,
+);
 const query = new URLSearchParams(location.search);
 const session = query.get("session");
 const loading = document.querySelector("#loading");

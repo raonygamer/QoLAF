@@ -90,8 +90,22 @@ export class Hooks {
         for (const h of current.filter(h => h.kind === 'around').reverse()) {
           const inner = next;
           next = (...values) => {
-            try { return h.callback.call(this, inner, ...values); }
-            catch (error) { onError(error, `around ${String(key)} (hook or downstream method)`); throw error; }
+            let called = false, result, downstreamError, downstreamFailed = false;
+            const proceed = (...forwarded) => {
+              called = true;
+              try { result = inner(...forwarded); return result; }
+              catch (error) { downstreamFailed = true; downstreamError = error; throw error; }
+            };
+            try { return h.callback.call(this, proceed, ...values); }
+            catch (error) {
+              if (downstreamFailed && error === downstreamError) {
+                onError(error, `around ${String(key)} (downstream method)`);
+                throw error;
+              }
+              onError(error, `around ${String(key)} (hook failed; native fallback)`);
+              if (downstreamFailed) throw downstreamError;
+              return called ? result : inner(...values);
+            }
           };
         }
         // Around hooks intentionally control execution, arguments and return values.
@@ -201,6 +215,13 @@ export class PluginHost {
     const host = this;
     const keyPrefix = `qolaf.plugin.${id}.`;
     const track = dispose => { scope.defer(dispose); return dispose; };
+    const hook = (target, key, kind, callback) => {
+      try { return track(host.hooks.add(target, key, kind, callback)); }
+      catch (error) {
+        host.hooks.onError(error, `install ${kind} ${String(key)}`);
+        return () => {};
+      }
+    };
     return Object.freeze({
       diagnostics: Object.freeze({ snapshot: () => host.diagnostics.map(entry => ({ ...entry })) }),
       version: API_VERSION,
@@ -250,9 +271,9 @@ export class PluginHost {
         track(host.on('gameExit', game => { if (game === sessionGame) close(); }));
         track(close);
       },
-      before: (target, key, callback) => track(host.hooks.add(target, key, 'before', callback)),
-      after: (target, key, callback) => track(host.hooks.add(target, key, 'after', callback)),
-      around: (target, key, callback) => track(host.hooks.add(target, key, 'around', callback)),
+      before: (target, key, callback) => hook(target, key, 'before', callback),
+      after: (target, key, callback) => hook(target, key, 'after', callback),
+      around: (target, key, callback) => hook(target, key, 'around', callback),
       defer: fn => scope.defer(fn),
       listen(target, name, callback, options) {
         target.addEventListener(name, callback, options);

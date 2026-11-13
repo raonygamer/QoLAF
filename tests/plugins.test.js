@@ -217,7 +217,7 @@ test('disabling a pending import prevents later activation', async () => {
   host.dispose();
 });
 
-test('diagnostics retain hook context, coalesce repeats and preserve around failures', () => {
+test('diagnostics retain hook context, coalesce repeats and isolate around failures', () => {
   const host = new PluginHost({ storage: storage(), log: { error() {}, info() {}, warn() {} } });
   const scope = new Scope();
   const api = host.api('test', scope);
@@ -233,7 +233,7 @@ test('diagnostics retain hook context, coalesce repeats and preserve around fail
   assert.notEqual(api.diagnostics.snapshot()[0].message, 'changed externally');
   const failure = new Error('around failed');
   api.around(target, 'draw', () => { throw failure; });
-  assert.throws(() => target.draw(), error => error === failure);
+  assert.equal(target.draw(), 42);
   assert.match(api.diagnostics.snapshot().at(-1).message, /around draw/);
   for (let i = 0; i < 130; i++) api.log('entry ' + i);
   assert.equal(api.diagnostics.snapshot().length, 100);
@@ -374,4 +374,46 @@ test('unloading settles a pending load immediately without waiting for the netwo
   assert.equal(activations, 0);
   assert.equal(host.ids.size, 0);
   host.dispose();
+});
+
+
+test('missing registrations do not stop subsequent hooks', () => {
+  const host = new PluginHost({ storage: storage(), log: { error() {}, info() {} } });
+  const scope = new Scope();
+  const api = host.api('test', scope);
+  const target = { draw() { return 3; } };
+  const undo = api.before(target, 'removedByUpdate', () => {});
+  let seen = false;
+  api.after(target, 'draw', () => { seen = true; });
+  assert.equal(target.draw(), 3);
+  assert.equal(seen, true);
+  assert.match(api.diagnostics.snapshot()[0].message, /removedByUpdate/);
+  undo(); scope.dispose(); host.dispose();
+});
+
+test('around failures run native at most once and preserve downstream exceptions', () => {
+  for (const after of [false, true]) {
+    const errors = [];
+    const hooks = new Hooks(error => errors.push(error));
+    let calls = 0, hookCalls = 0;
+    const target = { run(value) { calls++; return value * 2; } };
+    hooks.add(target, 'run', 'around', (next, value) => {
+      hookCalls++;
+      if (after) next(value + 1);
+      throw new Error('broken hook');
+    });
+    assert.equal(target.run(3), after ? 8 : 6);
+    assert.equal(calls, 1);
+    assert.equal(target.run(3), after ? 8 : 6);
+    assert.equal(calls, 2);
+    assert.equal(hookCalls, 2);
+    assert.equal(errors.length, 2);
+  }
+  const nativeError = new Error('native failure');
+  const hooks = new Hooks(() => {});
+  let calls = 0;
+  const target = { run() { calls++; throw nativeError; } };
+  hooks.add(target, 'run', 'around', next => next());
+  assert.throws(() => target.run(), error => error === nativeError);
+  assert.equal(calls, 1);
 });
